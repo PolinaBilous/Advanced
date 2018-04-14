@@ -1,0 +1,141 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <utility>
+
+class LCA {
+public:
+    int timer, ancestorCount;
+    size_t nodeCount;
+    std::vector<std::vector<int>> ancestors, &tree;
+    std::vector<int> timeIn, timeOut;
+
+    explicit LCA(std::vector<std::vector<int>>& parents) : tree(parents)
+    {
+        nodeCount = parents.size();
+        ancestorCount = static_cast<int>(ceil(log2(nodeCount)));
+        timeIn = std::vector<int>(nodeCount);
+        timeOut = std::vector<int>(nodeCount);
+        ancestors = std::vector<std::vector<int>>(nodeCount, std::vector<int>(ancestorCount + 1));
+        timer = 0;
+
+        DFS(0, 0);
+    }
+
+    bool isAncestor(int firstVertex, int secondVertex)
+    {
+        if (timeIn[firstVertex] <= timeIn[secondVertex] 
+            && timeOut[firstVertex] >= timeOut[secondVertex])
+        {
+            return true;
+        }
+        return false;
+    }
+
+    int risingUp(int firstVertex, int secondVertex)
+    {
+        if (isAncestor(firstVertex, secondVertex)) { return firstVertex; }
+        if (isAncestor(secondVertex, firstVertex)) { return secondVertex; }
+        
+        for (int i = ancestorCount; i >= 0; --i)
+        {
+            if (!isAncestor(ancestors[firstVertex][i], secondVertex))
+            {
+                firstVertex = ancestors[firstVertex][i];
+            }
+        }
+
+        return ancestors[firstVertex][0];
+    }
+
+    int Up(std::pair<int, int> question)
+    {
+        return risingUp(question.first, question.second);
+    }
+
+    void DFS(int node, int parent)
+    {
+        ancestors[node][0] = parent;
+        timeIn[node] = timer++;
+        for (int i = 1; i <= ancestorCount; ++i)
+        {
+            ancestors[node][i] = ancestors[ancestors[node][i - 1]][i - 1];
+        }
+        for (size_t i = 0; i < tree[node].size(); ++i) {
+            int to = tree[node][i];
+            if (to != parent)
+            {
+                DFS(to, node);
+            }
+        }
+        timeOut[node] = timer++;
+    }
+};
+
+class Question {
+public:
+    int paramA, paramB, paramN;
+    long long paramX, paramY, paramZ;
+
+    Question(int pa, int pb, long long px, long long py, long long pz, int pn)
+    {
+        paramA = pa;
+        paramB = pb;
+        paramX = px;
+        paramY = py;
+        paramZ = pz;
+        paramN = pn;
+    }
+
+    std::pair<int, int> Generate(int result)
+    {
+        std::pair<int, int> ans((paramA + result) % paramN, paramB);
+        paramA = (paramA * paramX + paramB * paramY + paramZ) % paramN;
+        paramB = (paramB * paramX + paramA * paramY + paramZ) % paramN;
+        return ans;
+    }
+};
+
+int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    int nodesCount;
+    int questionsCount;
+    std::cin >> nodesCount;
+    std::cin >> questionsCount;
+
+    std::vector<std::vector<int>> parents(nodesCount);
+
+    for (int i = 1; i < nodesCount; ++i) 
+    {
+        int newNode;
+        std::cin >> newNode;
+        parents[newNode].push_back(i);
+    }
+
+    int paramA, paramB;
+    std::cin >> paramA;
+    std::cin >> paramB;
+
+    long long paramX, paramY, paramZ;
+    std::cin >> paramX;
+    std::cin >> paramY;
+    std::cin >> paramZ;
+
+    Question nextQuery(paramA, paramB, paramX, paramY, paramZ, nodesCount);
+
+    LCA lca(parents);
+
+    long long ans = 0;
+    int result = 0;
+
+    for (int i = 0; i < questionsCount; ++i) {
+        result = lca.Up(nextQuery.Generate(result));
+        ans += result;
+    }
+
+    std::cout << ans;
+
+    return 0;
+}

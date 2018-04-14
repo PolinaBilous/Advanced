@@ -1,0 +1,128 @@
+#include <vector>
+#include <iostream>
+#include <string>
+
+std::vector<std::vector<int>> graph;
+std::vector<int> tState, visitTimes;
+std::vector<std::string> tiles;
+int length, width, timer;
+
+int CalculateVertex(int firstVertex, int secondVertex)
+{
+    return firstVertex * width + secondVertex;
+}
+
+void AddEdge(int firstVertex, int secondVertex)
+{
+    graph[firstVertex].push_back(secondVertex);
+}
+
+bool IsEmpty(int tileLength, int tileWidth)
+{
+    if (-1 < tileLength && tileLength < length && -1 < tileWidth 
+        && tileWidth < width && tiles[tileLength][tileWidth] == '*')
+    {
+        return true;
+    }
+    return false;
+}
+
+bool DFS(int vertex) {
+    if (timer == visitTimes[vertex]) { return false; }
+
+    visitTimes[vertex] = timer;
+
+    for (int to : graph[vertex])
+    {
+        if (tState[to] == -1 || DFS(tState[to]))
+        {
+            tState[to] = vertex;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void GetTiles()
+{
+    graph.resize(length * width);
+    tiles.resize(length);
+
+    for (int i = 0; i < length; ++i)
+    {
+        std::getline(std::cin, tiles[i]);
+        tiles[i].resize(width);
+    }
+}
+
+int CalculateCost(int firstPrice, int secondPrice, int emptyCount)
+{
+    if (2 * secondPrice <= firstPrice)
+    {
+        return secondPrice * emptyCount;
+    }
+    else
+    {
+        tState.assign(length * width, -1);
+        visitTimes.assign(length * width, -1);
+
+        timer = 0;
+
+        for (int v = 0; v < length * width; ++v)
+        {
+            ++timer;
+            DFS(v);
+        }
+
+        int pairs = 0;
+        for (int to = 0; to < length * width; ++to)
+        {
+            pairs += tState[to] != -1;
+        }
+
+        return pairs * firstPrice + (emptyCount - 2 * pairs) * secondPrice;
+    }
+}
+
+int main() {
+
+    int firstPrice, secondPrice;
+
+    scanf("%d%d%d%d\n", &length, &width, &firstPrice, &secondPrice);
+
+    GetTiles();
+
+    int emptyCount = 0;
+
+    int checkI[4] = { 1, -1, 0,  0 };
+    int checkJ[4] = { 0,  0, 1, -1 };
+
+    for (int it = 0; it < length; ++it)
+    {
+        for (int jt = 0; jt < width; ++jt)
+        {
+            if ((it + jt) % 2 == 1 && IsEmpty(it, jt))
+            {
+                for (int k = 0; k < 4; ++k)
+                {
+                    int neighbourI = it + checkI[k];
+                    int neighbourJ = jt + checkJ[k];
+                    if (IsEmpty(neighbourI, neighbourJ))
+                    {
+                        AddEdge(CalculateVertex(it, jt), CalculateVertex(neighbourI, neighbourJ));
+                    }
+                }
+            }
+            emptyCount += IsEmpty(it, jt);
+        }
+    }
+
+    int totalCost = CalculateCost(firstPrice, secondPrice, emptyCount);
+
+    printf("%d\n", totalCost);
+
+    system("pause");
+
+    return 0;
+}

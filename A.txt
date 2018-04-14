@@ -1,0 +1,123 @@
+#include <iostream> 
+
+struct node
+{
+public:
+    int vertex;
+    int distance;
+    node * next;
+
+    node(int vertexValue, int distanceValue, node * nextNodeValue)
+    {
+        vertex = vertexValue;
+        distance = distanceValue;
+        next = nextNodeValue;
+    }
+
+    node() { }
+};
+
+int parents[150001];
+int visited[150001];
+int distances[150001];
+int answers[75001][3];
+
+node * Graph[150001], *Questions[150001];
+node firstEdges[300001], secondEdges[300001];
+
+int DSUFind(int vertex)
+{
+    if (parents[vertex] != vertex)
+    {
+        return parents[vertex] = DSUFind(parents[vertex]);
+    }
+    return vertex;
+}
+
+void AddRecord(int firstVertex, int secondVertex, int distance, 
+    node edges[], node * structure[], int &index)
+{
+
+    edges[index] = node(secondVertex, distance, structure[firstVertex]);
+    structure[firstVertex] = edges + index++;
+
+    edges[index] = node(firstVertex, distance, structure[secondVertex]);
+    structure[secondVertex] = edges + index++;
+}
+
+void FindAnswers(int vertex)
+{
+    parents[vertex] = vertex;
+    visited[vertex] = 1;
+
+    node *currentNode = Questions[vertex];
+    while (currentNode)
+    {
+        if (visited[currentNode->vertex])
+        {
+            answers[currentNode->distance][2] = DSUFind(currentNode->vertex);
+        }
+        currentNode = currentNode->next;
+    }
+
+    currentNode = Graph[vertex];
+    while (currentNode)
+    {
+        if (!visited[currentNode->vertex])
+        {
+            distances[currentNode->vertex] = currentNode->distance + distances[vertex];
+            FindAnswers(currentNode->vertex);
+            parents[currentNode->vertex] = vertex;
+        }
+        currentNode = currentNode->next;
+    }
+}
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    distances[1] = 0;
+
+    int edgesCount;
+    int questionsCount;
+    int firstVertex;
+    int secondVertex;
+    int distance;
+
+    std::cin >> edgesCount;
+    int firstIndex = 0;
+
+    for (int i = 1; i < edgesCount; ++i) {
+        std::cin >> firstVertex;
+        std::cin >> secondVertex;
+        std::cin >> distance;
+
+        AddRecord(firstVertex, secondVertex, distance, firstEdges, Graph, firstIndex);
+    }
+
+    std::cin >> questionsCount;
+    int secondIndex = 0;
+
+    for (int i = 1; i <= questionsCount; ++i) {
+        std::cin >> firstVertex;
+        std::cin >> secondVertex;
+
+        answers[i][0] = firstVertex;
+        answers[i][1] = secondVertex;
+
+        AddRecord(firstVertex, secondVertex, i, secondEdges, Questions, secondIndex);
+    }
+
+    FindAnswers(1);
+
+    for (int i = 1; i <= questionsCount; ++i)
+    {
+        long long answer = distances[answers[i][0]] - distances[answers[i][2]] 
+            + distances[answers[i][1]] - distances[answers[i][2]];
+        std::cout << answer << std::endl;
+    }
+
+    return 0;
+}
